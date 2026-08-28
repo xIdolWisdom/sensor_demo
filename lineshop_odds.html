@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odds Finder | Sportsbook Line Shopping</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-green: #22c55e;
+            --accent-green-bg: rgba(34, 197, 94, 0.15);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #38bdf8;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        select {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .match-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .match-header {
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        td.team-cell {
+            text-align: left;
+            padding-left: 16px;
+            font-weight: bold;
+            width: 25%;
+        }
+
+        .odds-cell {
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .best-odds {
+            background-color: var(--accent-green-bg);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+            border-radius: 4px;
+        }
+
+        .line {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+            font-weight: normal;
+        }
+
+        @media (max-width: 600px) {
+            th, td { font-size: 0.8rem; padding: 8px 4px; }
+            td.team-cell { width: 30%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Line Shopping Engine</h1>
+    </header>
+
+    <div class="controls">
+        <select id="sport-filter" onchange="renderGames()">
+            <option value="ALL">All Sports</option>
+            <option value="NFL">NFL</option>
+            <option value="NBA">NBA</option>
+        </select>
+        <select id="market-filter" onchange="renderGames()">
+            <option value="spread">Point Spread</option>
+            <option value="moneyline">Moneyline</option>
+        </select>
+    </div>
+
+    <div id="games-container"></div>
+</div>
+
+<script>
+    const mockData = [
+        {
+            id: 1,
+            sport: "NFL",
+            teams: { home: "Kansas City Chiefs", away: "Buffalo Bills" },
+            time: "Sun 4:25 PM",
+            books: {
+                DraftKings: { spread: { away: "+2.5 (-110)", home: "-2.5 (-110)" }, moneyline: { away: "+120", home: "-140" } },
+                Fanduel:    { spread: { away: "+3.0 (-115)", home: "-3.0 (-105)" }, moneyline: { away: "+125", home: "-145" } },
+                MGM:        { spread: { away: "+2.5 (-105)", home: "-2.5 (-115)" }, moneyline: { away: "+118", home: "-138" } },
+                Caesars:    { spread: { away: "+3.0 (-120)", home: "-3.0 (+100)" }, moneyline: { away: "+122", home: "-142" } }
+            }
+        },
+        {
+            id: 2,
+            sport: "NBA",
+            teams: { home: "Boston Celtics", away: "LA Lakers" },
+            time: "Tonight 7:30 PM",
+            books: {
+                DraftKings: { spread: { away: "+5.5 (-110)", home: "-5.5 (-110)" }, moneyline: { away: "+180", home: "-210" } },
+                Fanduel:    { spread: { away: "+6.0 (-112)", home: "-6.0 (-108)" }, moneyline: { away: "+185", home: "-220" } },
+                MGM:        { spread: { away: "+5.5 (-108)", home: "-5.5 (-112)" }, moneyline: { away: "+175", home: "-205" } },
+                Caesars:    { spread: { away: "+5.5 (-110)", home: "-5.5 (-110)" }, moneyline: { away: "+182", home: "-215" } }
+            }
+        }
+    ];
+
+    function getBestOddsIndex(bookKeys, market, teamKey, games) {
+        // Simple logic to find the highest value line indicator for highlighting
+        let bestBook = "";
+        let maxVal = -Infinity;
+
+        bookKeys.forEach(book => {
+            const entry = games.books[book][market][teamKey];
+            let numVal = parseFloat(entry.replace(/[^0-9.-]/g, '')); 
+            if (numVal > maxVal) {
+                maxVal = numVal;
+                bestBook = book;
+            }
+        });
+        return bestBook;
+    }
+
+    function renderGames() {
+        const sportFilter = document.getElementById("sport-filter").value;
+        const marketFilter = document.getElementById("market-filter").value;
+        const container = document.getElementById("games-container");
+        
+        container.innerHTML = "";
+
+        const filteredData = mockData.filter(g => sportFilter === "ALL" || g.sport === sportFilter);
+
+        filteredData.forEach(game => {
+            const books = Object.keys(game.books);
+            const bestAwayBook = getBestOddsIndex(books, marketFilter, "away", game);
+            const bestHomeBook = getBestOddsIndex(books, marketFilter, "home", game);
+
+            let tableHeadHtml = `<th>Team</th>`;
+            books.forEach(b => tableHeadHtml += `<th>${b}</th>`);
+
+            const buildRow = (teamName, teamKey, bestBook) => {
+                let rowHtml = `<tr><td class="team-cell">${teamName}</td>`;
+                books.forEach(b => {
+                    const value = game.books[b][marketFilter][teamKey];
+                    const isBest = b === bestBook;
+                    rowHtml += `<td class="odds-cell ${isBest ? 'best-odds' : ''}">${value}</td>`;
+                });
+                rowHtml += `</tr>`;
+                return rowHtml;
+            };
+
+            const card = document.createElement("div");
+            card.className = "match-card";
+            card.innerHTML = `
+                <div class="match-header">
+                    <span>${game.sport} &bull; ${game.time}</span>
+                    <span>Market: ${marketFilter.toUpperCase()}</span>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr>${tableHeadHtml}</tr></thead>
+                        <tbody>
+                            ${buildRow(game.teams.away, "away", bestAwayBook)}
+                            ${buildRow(game.teams.home, "home", bestHomeBook)}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    renderGames();
+</script>
+</body>
+</html>

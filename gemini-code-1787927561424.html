@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Synth Drum Machine</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --panel-bg: #1a1b1e;
+            --border-color: #2e3035;
+            --accent-red: #ff4757;
+            --accent-cyan: #00d2d3;
+            --text-main: #f1f2f6;
+            --pad-off: #25282e;
+            --pad-on: #00d2d3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .drum-machine {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        button.btn {
+            background-color: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button.btn:hover {
+            opacity: 0.9;
+        }
+
+        .tempo-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-cyan);
+        }
+
+        .sequencer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .track {
+            display: grid;
+            grid-template-columns: 80px repeat(8, 1fr);
+            gap: 8px;
+            align-items: center;
+        }
+
+        .track-name {
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #a4b0be;
+            text-transform: uppercase;
+        }
+
+        .step {
+            aspect-ratio: 1;
+            background-color: var(--pad-off);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .step.active {
+            background-color: var(--pad-on);
+            box-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        .step.playing {
+            border-color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .info-panel {
+            margin-top: 24px;
+            padding: 12px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #a4b0be;
+        }
+    </style>
+</head>
+<body>
+
+<div class="drum-machine">
+    <div class="top-bar">
+        <h2>WebAudio Drum Engine</h2>
+        <div class="controls">
+            <button id="play-btn" class="btn">Start</button>
+            <div class="tempo-control">
+                <label for="tempo">BPM: <span id="bpm-val">120</span></label>
+                <input type="range" id="tempo" min="60" max="180" value="120">
+            </div>
+        </div>
+    </div>
+
+    <div class="sequencer" id="sequencer"></div>
+
+    <div class="info-panel">
+        <strong>How it works:</strong> Click step pads to toggle notes. The Audio Context generates sounds in real-time (Oscillators for Tonal sounds, Noise Buffer for Hi-Hats/Snares) rather than downloading external MP3s.
+    </div>
+</div>
+
+<script>
+    // --- 1. WEB AUDIO CONTEXT SETUP ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    // Instruments Configuration
+    const INSTRUMENTS = ["Kick", "Snare", "HiHat", "Clap"];
+    const STEPS = 8;
+    
+    // Grid State: 4 rows x 8 steps (false = off, true = on)
+    let grid = Array(INSTRUMENTS.length).fill(null).map(() => Array(STEPS).fill(false));
+    
+    let isPlaying = false;
+    let currentStep = 0;
+    let tempo = 120;
+    let timerId = null;
+
+    // --- 2. AUDIO SYNTHESIS ENGINE ---
+    
+    // Kick Sound: Sine wave with pitch drop and fast volume decay
+    function playKick(time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+        gain.gain.setValueAtTime(1, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(time);
+        osc.stop(time + 0.5);
+    }
+
+    // Snare Sound: White noise combined with a brief triangle wave pitch
+    function playSnare(time) {
+        // Noise Component
+        const bufferSize = audioCtx.sampleRate * 0.2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.value = 1000;
+
+        const noiseEnvelope = audioCtx.createGain();
+        noiseEnvelope.gain.setValueAtTime(1, time);
+        noiseEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseEnvelope);
+        noiseEnvelope.connect(audioCtx.destination);
+
+        // Snap/Tone Component
+        const osc = audioCtx.createOscillator();
+        const oscEnvelope = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(100, time);
+        oscEnvelope.gain.setValueAtTime(0.7, time);
+        oscEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+
+        osc.connect(oscEnvelope);
+        oscEnvelope.connect(audioCtx.destination);
+
+        noise.start(time);
+        osc.start(time);
+        noise.stop(time + 0.2);
+        osc.stop(time + 0.1);
+    }
+
+    // Hi-Hat Sound: High-pass filtered noise with sharp decay
+    function playHiHat(time) {
+        const bufferSize = audioCtx.sampleRate * 0.05;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 7000;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.6, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.05);
+    }
+
+    // Clap Sound: Burst of noise with rapid envelope repeats
+    function playClap(time) {
+        const bufferSize = audioCtx.sampleRate * 0.2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.8, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.2);
+    }
+
+    function triggerSound(instrumentIndex, time) {
+        switch(instrumentIndex) {
+            case 0: playKick(time); break;
+            case 1: playSnare(time); break;
+            case 2: playHiHat(time); break;
+            case 3: playClap(time); break;
+        }
+    }
+
+    // --- 3. SEQUENCER & TIMING ENGINE ---
+    function nextStep() {
+        const secondsPerBeat = 60.0 / tempo / 2; // 16th-note style step duration
+        
+        // Remove 'playing' class from previous step UI
+        const prevStep = (currentStep + STEPS - 1) % STEPS;
+        document.querySelectorAll(`.step-col-${prevStep}`).forEach(el => el.classList.remove('playing'));
+
+        // Highlight active column UI & play sound
+        document.querySelectorAll(`.step-col-${currentStep}`).forEach(el => el.classList.add('playing'));
+
+        for (let r = 0; r < INSTRUMENTS.length; r++) {
+            if (grid[r][currentStep]) {
+                triggerSound(r, audioCtx.currentTime);
+            }
+        }
+
+        currentStep = (currentStep + 1) % STEPS;
+    }
+
+    // --- 4. DOM BUILDING & EVENT HANDLING ---
+    function buildUI() {
+        const container = document.getElementById('sequencer');
+        
+        INSTRUMENTS.forEach((inst, rowIdx) => {
+            const track = document.createElement('div');
+            track.className = 'track';
+
+            const label = document.createElement('div');
+            label.className = 'track-name';
+            label.innerText = inst;
+            track.appendChild(label);
+
+            for (let colIdx = 0; colIdx < STEPS; colIdx++) {
+                const stepBtn = document.createElement('div');
+                stepBtn.className = `step step-col-${colIdx}`;
+                stepBtn.addEventListener('click', () => {
+                    grid[rowIdx][colIdx] = !grid[rowIdx][colIdx];
+                    stepBtn.classList.toggle('active', grid[rowIdx][colIdx]);
+                });
+                track.appendChild(stepBtn);
+            }
+
+            container.appendChild(track);
+        });
+    }
+
+    // Controls
+    document.getElementById('play-btn').addEventListener('click', (e) => {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        isPlaying = !isPlaying;
+
+        if (isPlaying) {
+            e.target.innerText = "Stop";
+            e.target.style.backgroundColor = "#ff6b6b";
+            currentStep = 0;
+            const intervalMs = (60 / tempo / 2) * 1000;
+            timerId = setInterval(nextStep, intervalMs);
+        } else {
+            e.target.innerText = "Start";
+            e.target.style.backgroundColor = "var(--accent-red)";
+            clearInterval(timerId);
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('playing'));
+        }
+    });
+
+    document.getElementById('tempo').addEventListener('input', (e) => {
+        tempo = e.target.value;
+        document.getElementById('bpm-val').innerText = tempo;
+        if (isPlaying) {
+            clearInterval(timerId);
+            const intervalMs = (60 / tempo / 2) * 1000;
+            timerId = setInterval(nextStep, intervalMs);
+        }
+    });
+
+    buildUI();
+</script>
+
+</body>
+</html>

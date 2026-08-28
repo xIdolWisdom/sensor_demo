@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Line Shop — Sportsbook Odds Comparison</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --surface: #141a22;
+      --surface2: #1c2430;
+      --border: #2a3544;
+      --text: #e8eef6;
+      --muted: #8b9bb0;
+      --accent: #00d4aa;
+      --accent-dim: #00a884;
+      --best: #00d4aa;
+      --best-bg: rgba(0, 212, 170, 0.12);
+      --danger: #ff5c5c;
+      --warning: #f5a623;
+      --radius: 10px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #121820 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #00a0ff);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 400;
+    }
+
+    /* Controls */
+    .controls {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .sport-tabs {
+      display: flex;
+      gap: 0.4rem;
+      background: var(--surface);
+      padding: 0.3rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .sport-tab {
+      padding: 0.45rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sport-tab:hover { color: var(--text); }
+    .sport-tab.active {
+      background: var(--accent);
+      color: #04120e;
+    }
+
+    .market-select, .search-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .market-select:focus, .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-input {
+      min-width: 200px;
+      flex: 1;
+      max-width: 280px;
+    }
+
+    .legend {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--best);
+      box-shadow: 0 0 8px var(--best);
+    }
+
+    /* Main content */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 3rem;
+    }
+
+    .games-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .game-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .game-card:hover {
+      border-color: #3a4a5c;
+    }
+
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 1.15rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .matchup {
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .vs {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+
+    .game-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .game-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* Odds table */
+    .odds-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .odds-table th {
+      text-align: left;
+      padding: 0.65rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+    }
+
+    .odds-table td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .odds-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .book-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-weight: 600;
+    }
+
+    .book-logo {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .odds-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 0.95rem;
+    }
+
+    .odds-cell.best {
+      color: var(--best);
+      background: var(--best-bg);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      display: inline-block;
+    }
+
+    .line-cell {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state h3 {
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    /* Footer note */
+    footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .odds-table th:nth-child(n+4),
+      .odds-table td:nth-child(n+4) {
+        display: none;
+      }
+      .legend { display: none; }
+      .search-input { max-width: none; }
+    }
+
+    /* Loading shimmer */
+    .shimmer {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 6px;
+      height: 18px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <div>
+          Line Shop
+          <div class="tagline">Find the best odds across sportsbooks</div>
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted)">
+        Demo data · Updated just now
+      </div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="sport-tabs" id="sportTabs">
+      <button class="sport-tab active" data-sport="nfl">NFL</button>
+      <button class="sport-tab" data-sport="nba">NBA</button>
+      <button class="sport-tab" data-sport="mlb">MLB</button>
+      <button class="sport-tab" data-sport="nhl">NHL</button>
+    </div>
+
+    <select class="market-select" id="marketSelect">
+      <option value="moneyline">Moneyline</option>
+      <option value="spread">Spread</option>
+      <option value="total">Total (O/U)</option>
+    </select>
+
+    <input type="text" class="search-input" id="searchInput" placeholder="Search team..." />
+
+    <div class="legend">
+      <span class="legend-dot"></span>
+      Best available price
+    </div>
+  </div>
+
+  <main>
+    <div class="games-grid" id="gamesGrid">
+      <!-- Games rendered by JS -->
+    </div>
+  </main>
+
+  <footer>
+    This is a demonstration tool with sample odds. Always verify live lines at the sportsbook before placing a bet.
+    Gambling involves risk. Please bet responsibly.
+  </footer>
+
+  <script>
+    // ========== SAMPLE DATA ==========
+    const BOOKS = [
+      { id: 'dk', name: 'DraftKings', color: '#53d337', short: 'DK' },
+      { id: 'fd', name: 'FanDuel', color: '#1493ff', short: 'FD' },
+      { id: 'mgm', name: 'BetMGM', color: '#c4a35a', short: 'MGM' },
+      { id: 'czr', name: 'Caesars', color: '#000000', short: 'CZR' },
+      { id: 'br', name: 'BetRivers', color: '#e31837', short: 'BR' },
+    ];
+
+    // Realistic sample games (American odds)
+    const DATA = {
+      nfl: [
+        {
+          id: 'nfl1',
+          away: 'Kansas City Chiefs',
+          home: 'Buffalo Bills',
+          time: 'Sun 1:00 PM ET',
+          league: 'AFC',
+          moneyline: {
+            away: { dk: -125, fd: -122, mgm: -130, czr: -118, br: -128 },
+            home: { dk: +105, fd: +102, mgm: +110, czr: +100, br: +108 }
+          },
+          spread: {
+            line: -2.5,
+            away: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            home: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          },
+          total: {
+            line: 48.5,
+            over: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            under: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          }
+        },
+        {
+          id: 'nfl2',
+          away: 'San Francisco 49ers',
+          home: 'Dallas Cowboys',
+          time: 'Sun 4:25 PM ET',
+          league: 'NFC',
+          moneyline: {
+            away: { dk: -145, fd: -140, mgm: -150, czr: -138, br: -148 },
+            home: { dk: +122, fd: +118, mgm: +125, czr: +115, br: +120 }
+          },
+          spread: {
+            line: -3.0,
+            away: { dk: -112, fd: -110, mgm: -115, czr: -108, br: -114 },
+            home: { dk: -108, fd: -110, mgm: -105, czr: -112, br: -106 }
+          },
+          total: {
+            line: 46.5,
+            over: { dk: -108, fd: -110, mgm: -112, czr: -105, br: -115 },
+            under: { dk: -112, fd: -110, mgm: -108, czr: -115, br: -105 }
+          }
+        },
+        {
+          id: 'nfl3',
+          away: 'Philadelphia Eagles',
+          home: 'New York Giants',
+          time: 'Sun 8:20 PM ET',
+          league: 'NFC East',
+          moneyline: {
+            away: { dk: -280, fd: -275, mgm: -290, czr: -270, br: -285 },
+            home: { dk: +230, fd: +225, mgm: +240, czr: +220, br: +235 }
+          },
+          spread: {
+            line: -6.5,
+            away: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            home: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          },
+          total: {
+            line: 43.5,
+            over: { dk: -115, fd: -110, mgm: -112, czr: -108, br: -118 },
+            under: { dk: -105, fd: -110, mgm: -108, czr: -112, br: -102 }
+          }
+        },
+        {
+          id: 'nfl4',
+          away: 'Baltimore Ravens',
+          home: 'Cincinnati Bengals',
+          time: 'Mon 8:15 PM ET',
+          league: 'AFC North',
+          moneyline: {
+            away: { dk: -165, fd: -160, mgm: -170, czr: -155, br: -168 },
+            home: { dk: +140, fd: +135, mgm: +145, czr: +130, br: +142 }
+          },
+          spread: {
+            line: -3.5,
+            away: { dk: -108, fd: -110, mgm: -112, czr: -105, br: -115 },
+            home: { dk: -112, fd: -110, mgm: -108, czr: -115, br: -105 }
+          },
+          total: {
+            line: 50.5,
+            over: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            under: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          }
+        }
+      ],
+      nba: [
+        {
+          id: 'nba1',
+          away: 'Boston Celtics',
+          home: 'Milwaukee Bucks',
+          time: 'Tonight 7:30 PM ET',
+          league: 'East',
+          moneyline: {
+            away: { dk: -135, fd: -130, mgm: -140, czr: -128, br: -138 },
+            home: { dk: +115, fd: +110, mgm: +118, czr: +108, br: +116 }
+          },
+          spread: {
+            line: -3.0,
+            away: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            home: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          },
+          total: {
+            line: 224.5,
+            over: { dk: -110, fd: -108, mgm: -112, czr: -105, br: -115 },
+            under: { dk: -110, fd: -112, mgm: -108, czr: -115, br: -105 }
+          }
+        },
+        {
+          id: 'nba2',
+          away: 'Denver Nuggets',
+          home: 'Los Angeles Lakers',
+          time: 'Tonight 10:00 PM ET',
+          league: 'West',
+          moneyline: {
+            away: { dk: +105, fd: +102, mgm: +110, czr: +100, br: +108 },
+            home: { dk: -125, fd: -122, mgm: -130, czr: -118, br: -128 }
+          },
+          spread: {
+            line: +1.5,
+            away: { dk: -108, fd: -110, mgm: -105, czr: -112, br: -106 },
+            home: { dk: -112, fd: -110, mgm: -115, czr: -108, br: -114 }
+          },
+          total: {
+            line: 228.5,
+            over: { dk: -115, fd: -110, mgm: -112, czr: -108, br: -118 },
+            under: { dk: -105, fd: -110, mgm: -108, czr: -112, br: -102 }
+          }
+        },
+        {
+          id: 'nba3',
+          away: 'Golden State Warriors',
+          home: 'Phoenix Suns',
+          time: 'Tomorrow 9:00 PM ET',
+          league: 'West',
+          moneyline: {
+            away: { dk: +145, fd: +140, mgm: +150, czr: +138, br: +148 },
+            home: { dk: -170, fd: -165, mgm: -175, czr: -160, br: -172 }
+          },
+          spread: {
+            line: +4.0,
+            away: { dk: -110, fd: -108, mgm: -112, czr: -105, br: -115 },
+            home: { dk: -110, fd: -112, mgm: -108, czr: -115, br: -105 }
+          },
+          total: {
+            line: 231.5,
+            over: { dk: -108, fd: -110, mgm: -105, czr: -112, br: -106 },
+            under: { dk: -112, fd: -110, mgm: -115, czr: -108, br: -114 }
+          }
+        }
+      ],
+      mlb: [
+        {
+          id: 'mlb1',
+          away: 'New York Yankees',
+          home: 'Boston Red Sox',
+          time: 'Today 7:10 PM ET',
+          league: 'AL East',
+          moneyline: {
+            away: { dk: -145, fd: -140, mgm: -150, czr: -138, br: -148 },
+            home: { dk: +122, fd: +118, mgm: +125, czr: +115, br: +120 }
+          },
+          spread: {
+            line: -1.5,
+            away: { dk: +130, fd: +125, mgm: +135, czr: +122, br: +128 },
+            home: { dk: -150, fd: -145, mgm: -155, czr: -142, br: -152 }
+          },
+          total: {
+            line: 8.5,
+            over: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            under: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          }
+        },
+        {
+          id: 'mlb2',
+          away: 'Los Angeles Dodgers',
+          home: 'San Diego Padres',
+          time: 'Today 9:40 PM ET',
+          league: 'NL West',
+          moneyline: {
+            away: { dk: -165, fd: -160, mgm: -170, czr: -155, br: -168 },
+            home: { dk: +140, fd: +135, mgm: +145, czr: +130, br: +142 }
+          },
+          spread: {
+            line: -1.5,
+            away: { dk: +115, fd: +110, mgm: +120, czr: +108, br: +118 },
+            home: { dk: -135, fd: -130, mgm: -140, czr: -128, br: -138 }
+          },
+          total: {
+            line: 7.5,
+            over: { dk: -120, fd: -115, mgm: -125, czr: -112, br: -122 },
+            under: { dk: +100, fd: -105, mgm: +105, czr: -108, br: -102 }
+          }
+        },
+        {
+          id: 'mlb3',
+          away: 'Atlanta Braves',
+          home: 'Philadelphia Phillies',
+          time: 'Tomorrow 6:40 PM ET',
+          league: 'NL East',
+          moneyline: {
+            away: { dk: +110, fd: +105, mgm: +115, czr: +102, br: +112 },
+            home: { dk: -130, fd: -125, mgm: -135, czr: -122, br: -132 }
+          },
+          spread: {
+            line: +1.5,
+            away: { dk: -180, fd: -175, mgm: -185, czr: -170, br: -182 },
+            home: { dk: +155, fd: +150, mgm: +160, czr: +145, br: +158 }
+          },
+          total: {
+            line: 9.0,
+            over: { dk: -105, fd: -108, mgm: -102, czr: -110, br: -100 },
+            under: { dk: -115, fd: -112, mgm: -118, czr: -110, br: -120 }
+          }
+        }
+      ],
+      nhl: [
+        {
+          id: 'nhl1',
+          away: 'Florida Panthers',
+          home: 'Tampa Bay Lightning',
+          time: 'Tonight 7:00 PM ET',
+          league: 'Atlantic',
+          moneyline: {
+            away: { dk: -125, fd: -122, mgm: -130, czr: -118, br: -128 },
+            home: { dk: +105, fd: +102, mgm: +110, czr: +100, br: +108 }
+          },
+          spread: {
+            line: -1.5,
+            away: { dk: +175, fd: +170, mgm: +180, czr: +165, br: +178 },
+            home: { dk: -210, fd: -205, mgm: -215, czr: -200, br: -212 }
+          },
+          total: {
+            line: 6.0,
+            over: { dk: -115, fd: -110, mgm: -120, czr: -108, br: -118 },
+            under: { dk: -105, fd: -110, mgm: +100, czr: -112, br: -102 }
+          }
+        },
+        {
+          id: 'nhl2',
+          away: 'Colorado Avalanche',
+          home: 'Vegas Golden Knights',
+          time: 'Tonight 10:00 PM ET',
+          league: 'West',
+          moneyline: {
+            away: { dk: -140, fd: -135, mgm: -145, czr: -132, br: -142 },
+            home: { dk: +118, fd: +115, mgm: +122, czr: +112, br: +120 }
+          },
+          spread: {
+            line: -1.5,
+            away: { dk: +155, fd: +150, mgm: +160, czr: +148, br: +158 },
+            home: { dk: -180, fd: -175, mgm: -185, czr: -170, br: -182 }
+          },
+          total: {
+            line: 6.5,
+            over: { dk: -110, fd: -108, mgm: -115, czr: -105, br: -112 },
+            under: { dk: -110, fd: -112, mgm: -105, czr: -115, br: -108 }
+          }
+        }
+      ]
+    };
+
+    // ========== STATE ==========
+    let currentSport = 'nfl';
+    let currentMarket = 'moneyline';
+    let searchQuery = '';
+
+    // ========== HELPERS ==========
+    function formatOdds(n) {
+      if (n == null) return '—';
+      return n > 0 ? `+${n}` : `${n}`;
+    }
+
+    function bestPrice(prices, preferHigher = true) {
+      // For American odds: higher number is better for the bettor
+      // +150 is better than +140, -110 is better than -120
+      const entries = Object.entries(prices).filter(([, v]) => v != null);
+      if (!entries.length) return null;
+      return entries.reduce((best, curr) => {
+        return curr[1] > best[1] ? curr : best;
+      })[0];
+    }
+
+    function getBook(id) {
+      return BOOKS.find(b => b.id === id);
+    }
+
+    // ========== RENDER ==========
+    function renderGames() {
+      const grid = document.getElementById('gamesGrid');
+      let games = DATA[currentSport] || [];
+
+      // Filter by search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        games = games.filter(g =>
+          g.away.toLowerCase().includes(q) ||
+          g.home.toLowerCase().includes(q)
+        );
+      }
+
+      if (!games.length) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h3>No games found</h3>
+            <p>Try a different sport or clear your search.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = games.map(game => renderGameCard(game)).join('');
+    }
+
+    function renderGameCard(game) {
+      const market = currentMarket;
+      let rows = '';
+
+      if (market === 'moneyline') {
+        const awayBest = bestPrice(game.moneyline.away);
+        const homeBest = bestPrice(game.moneyline.home);
+
+        rows = BOOKS.map(book => {
+          const awayOdds = game.moneyline.away[book.id];
+          const homeOdds = game.moneyline.home[book.id];
+          return `
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-logo" style="background:${book.color}">${book.short}</div>
+                  ${book.name}
+                </div>
+              </td>
+              <td class="odds-cell">
+                <span class="${awayBest === book.id ? 'best' : ''}">${formatOdds(awayOdds)}</span>
+              </td>
+              <td class="odds-cell">
+                <span class="${homeBest === book.id ? 'best' : ''}">${formatOdds(homeOdds)}</span>
+              </td>
+            </tr>`;
+        }).join('');
+
+        return `
+          <article class="game-card">
+            <div class="game-header">
+              <div class="matchup">
+                <span>${game.away}</span>
+                <span class="vs">@</span>
+                <span>${game.home}</span>
+              </div>
+              <div class="game-meta">
+                <span>📅 ${game.time}</span>
+                <span>🏟 ${game.league}</span>
+              </div>
+            </div>
+            <table class="odds-table">
+              <thead>
+                <tr>
+                  <th style="width:30%">Sportsbook</th>
+                  <th>${game.away.split(' ').pop()}</th>
+                  <th>${game.home.split(' ').pop()}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </article>`;
+      }
+
+      if (market === 'spread') {
+        const awayBest = bestPrice(game.spread.away);
+        const homeBest = bestPrice(game.spread.home);
+        const line = game.spread.line;
+        const awayLine = line > 0 ? `+${line}` : line;
+        const homeLine = line > 0 ? `-${line}` : `+${Math.abs(line)}`;
+
+        rows = BOOKS.map(book => {
+          const awayOdds = game.spread.away[book.id];
+          const homeOdds = game.spread.home[book.id];
+          return `
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-logo" style="background:${book.color}">${book.short}</div>
+                  ${book.name}
+                </div>
+              </td>
+              <td>
+                <span class="line-cell">${awayLine}</span>
+                <span class="odds-cell ${awayBest === book.id ? 'best' : ''}">${formatOdds(awayOdds)}</span>
+              </td>
+              <td>
+                <span class="line-cell">${homeLine}</span>
+                <span class="odds-cell ${homeBest === book.id ? 'best' : ''}">${formatOdds(homeOdds)}</span>
+              </td>
+            </tr>`;
+        }).join('');
+
+        return `
+          <article class="game-card">
+            <div class="game-header">
+              <div class="matchup">
+                <span>${game.away}</span>
+                <span class="vs">@</span>
+                <span>${game.home}</span>
+              </div>
+              <div class="game-meta">
+                <span>📅 ${game.time}</span>
+                <span>Spread: ${awayLine} / ${homeLine}</span>
+              </div>
+            </div>
+            <table class="odds-table">
+              <thead>
+                <tr>
+                  <th style="width:30%">Sportsbook</th>
+                  <th>${game.away.split(' ').pop()} ${awayLine}</th>
+                  <th>${game.home.split(' ').pop()} ${homeLine}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </article>`;
+      }
+
+      // Total
+      const overBest = bestPrice(game.total.over);
+      const underBest = bestPrice(game.total.under);
+      const totalLine = game.total.line;
+
+      rows = BOOKS.map(book => {
+        const overOdds = game.total.over[book.id];
+        const underOdds = game.total.under[book.id];
+        return `
+          <tr>
+            <td>
+              <div class="book-cell">
+                <div class="book-logo" style="background:${book.color}">${book.short}</div>
+                ${book.name}
+              </div>
+            </td>
+            <td>
+              <span class="line-cell">O ${totalLine}</span>
+              <span class="odds-cell ${overBest === book.id ? 'best' : ''}">${formatOdds(overOdds)}</span>
+            </td>
+            <td>
+              <span class="line-cell">U ${totalLine}</span>
+              <span class="odds-cell ${underBest === book.id ? 'best' : ''}">${formatOdds(underOdds)}</span>
+            </td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <article class="game-card">
+          <div class="game-header">
+            <div class="matchup">
+              <span>${game.away}</span>
+              <span class="vs">@</span>
+              <span>${game.home}</span>
+            </div>
+            <div class="game-meta">
+              <span>📅 ${game.time}</span>
+              <span>Total: ${totalLine}</span>
+            </div>
+          </div>
+          <table class="odds-table">
+            <thead>
+              <tr>
+                <th style="width:30%">Sportsbook</th>
+                <th>Over ${totalLine}</th>
+                <th>Under ${totalLine}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </article>`;
+    }
+
+    // ========== EVENTS ==========
+    document.getElementById('sportTabs').addEventListener('click', (e) => {
+      if (e.target.classList.contains('sport-tab')) {
+        document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentSport = e.target.dataset.sport;
+        renderGames();
+      }
+    });
+
+    document.getElementById('marketSelect').addEventListener('change', (e) => {
+      currentMarket = e.target.value;
+      renderGames();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderGames();
+    });
+
+    // Initial render
+    renderGames();
+  </script>
+</body>
+</html>

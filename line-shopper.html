@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Shopper — Best Odds Board</title>
+<style>
+  :root{
+    --board-bg: #12151c;
+    --panel-bg: #1a1f29;
+    --panel-bg-raised: #202634;
+    --flip-dark: #0d1016;
+    --line: #2b3140;
+    --line-soft: #232937;
+    --ink: #e9e7de;
+    --ink-dim: #8b93a3;
+    --ink-faint: #545c6b;
+    --amber: #f2a900;
+    --amber-dim: #7a5a12;
+    --green: #3fcf8e;
+    --red: #e2574c;
+    --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'Space Mono', 'Courier New', monospace;
+  }
+
+  @font-face {
+    font-family: 'Oswald';
+    src: local('Oswald');
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--board-bg);
+    background-image:
+      radial-gradient(ellipse at top, rgba(242,169,0,0.06), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  a{color:inherit;}
+
+  /* ---------- Header / marquee ---------- */
+  .marquee{
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #171b24, #12151c);
+    padding: 22px 28px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(6px);
+  }
+  .marquee-top{
+    display:flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 1180px;
+    margin: 0 auto 14px;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap: 12px;
+  }
+  .brand h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 26px;
+    margin: 0;
+    color: var(--ink);
+  }
+  .brand .dot{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    display:inline-block;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:.35; }
+  }
+  .brand .tag{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .clock{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.05em;
+    text-align: right;
+  }
+  .clock span{color: var(--amber);}
+
+  .controls{
+    max-width: 1180px;
+    margin: 0 auto;
+    display:flex;
+    align-items:center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .sport-tabs{
+    display:flex;
+    gap: 4px;
+    background: var(--flip-dark);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .sport-tabs button{
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 13px;
+    background: transparent;
+    color: var(--ink-dim);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .sport-tabs button:hover{ color: var(--ink); }
+  .sport-tabs button.active{
+    background: var(--amber);
+    color: #1a1200;
+  }
+  .sport-tabs button:focus-visible, .market-tabs button:focus-visible, .searchbox input:focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  .searchbox{
+    margin-left: auto;
+    position: relative;
+  }
+  .searchbox input{
+    background: var(--flip-dark);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 9px 14px 9px 32px;
+    border-radius: 8px;
+    width: 220px;
+  }
+  .searchbox input::placeholder{ color: var(--ink-faint); }
+  .searchbox svg{
+    position:absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 14px; height:14px; stroke: var(--ink-faint);
+  }
+
+  /* ---------- Value summary strip ---------- */
+  .summary-strip{
+    max-width: 1180px;
+    margin: 18px auto 0;
+    padding: 0 28px;
+    display:flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .summary-card{
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 16px;
+    flex: 1 1 200px;
+    min-width: 180px;
+  }
+  .summary-card .label{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .summary-card .value{
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--amber);
+  }
+  .summary-card .sub{
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+
+  /* ---------- Board layout ---------- */
+  .board{
+    max-width: 1180px;
+    margin: 26px auto 0;
+    padding: 0 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .game-card{
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .game-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .game-head:hover{ background: rgba(255,255,255,0.015); }
+
+  .matchup{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+  .teams{
+    display:flex;
+    flex-direction:column;
+    gap: 2px;
+  }
+  .team-row{
+    display:flex;
+    align-items:baseline;
+    gap: 8px;
+  }
+  .team-name{
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .team-rank{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  .vs-divider{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  .game-meta{
+    display:flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .game-time{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-align:right;
+  }
+  .best-edge-pill{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(63,207,142,0.1);
+    color: var(--green);
+    border: 1px solid rgba(63,207,142,0.35);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .chevron{
+    width: 18px; height: 18px;
+    stroke: var(--ink-faint);
+    transition: transform .2s ease;
+    flex-shrink: 0;
+  }
+  .game-card.open .chevron{ transform: rotate(180deg); }
+
+  .game-body{
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s ease;
+    border-top: 1px solid var(--line);
+  }
+  .game-card.open .game-body{
+    max-height: 900px;
+  }
+
+  .market-tabs{
+    display:flex;
+    gap: 2px;
+    padding: 10px 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .market-tabs button{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: transparent;
+    border: none;
+    color: var(--ink-faint);
+    padding: 8px 14px 10px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .market-tabs button.active{
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+  }
+
+  /* ---------- Odds grid ---------- */
+  .odds-grid{
+    padding: 14px 18px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .book-cell{
+    background: var(--flip-dark);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 12px 12px;
+    position: relative;
+  }
+  .book-cell.best{
+    border-color: var(--amber);
+    box-shadow: 0 0 0 1px var(--amber-dim), 0 0 14px rgba(242,169,0,0.12);
+  }
+  .book-name{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-dim);
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+  }
+  .best-badge{
+    font-family: var(--font-mono);
+    font-size: 9px;
+    background: var(--amber);
+    color: #1a1200;
+    padding: 1px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  .flip-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 8px;
+    gap: 8px;
+  }
+  .flip-value{
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    perspective: 300px;
+  }
+  .flip-value.pos{ color: var(--green); }
+  .flip-value.neg{ color: var(--ink); }
+  .flip-inner{
+    display:inline-block;
+    transform-style: preserve-3d;
+  }
+  .flip-inner.flipping{
+    animation: flipX .5s ease;
+  }
+  @keyframes flipX{
+    0%{ transform: rotateX(0deg); }
+    50%{ transform: rotateX(90deg); }
+    51%{ transform: rotateX(-90deg); }
+    100%{ transform: rotateX(0deg); }
+  }
+  .implied{
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .flip-inner.flipping{ animation: none; }
+    .brand .dot{ animation: none; }
+  }
+
+  /* ---------- footer ---------- */
+  .board-footer{
+    max-width: 1180px;
+    margin: 30px auto 0;
+    padding: 16px 28px 0;
+    border-top: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding: 60px 20px;
+    color: var(--ink-faint);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  @media (max-width: 640px){
+    .marquee{ padding: 16px 16px 14px; }
+    .board, .summary-strip, .board-footer{ padding-left: 16px; padding-right: 16px; }
+    .clock{ display:none; }
+    .searchbox{ margin-left: 0; width: 100%; }
+    .searchbox input{ width: 100%; }
+    .game-meta{ align-items: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+<header class="marquee">
+  <div class="marquee-top">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Line Shopper</h1>
+      <span class="tag">/// odds board</span>
+    </div>
+    <div class="clock" id="clock">LIVE — <span id="clockTime">--:--:--</span></div>
+  </div>
+  <div class="controls">
+    <div class="sport-tabs" id="sportTabs">
+      <button class="active" data-sport="NFL">NFL</button>
+      <button data-sport="NBA">NBA</button>
+      <button data-sport="MLB">MLB</button>
+      <button data-sport="NHL">NHL</button>
+    </div>
+    <div class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Search teams…">
+    </div>
+  </div>
+</header>
+
+<section class="summary-strip" id="summaryStrip"></section>
+
+<main class="board" id="board"></main>
+
+<footer class="board-footer">
+  <span>Demo data — refreshes on tab switch to simulate movement. Not connected to live feeds.</span>
+  <span>Odds shown American. Best price per market highlighted in amber.</span>
+</footer>
+
+<script>
+(function(){
+  const BOOKS = ["DraftKings","FanDuel","BetMGM","Caesars","ESPN BET","Fanatics"];
+
+  const TEAMS = {
+    NFL: [
+      ["Miami Dolphins","Buffalo Bills"],
+      ["Kansas City Chiefs","Cincinnati Bengals"],
+      ["San Francisco 49ers","Dallas Cowboys"],
+      ["Philadelphia Eagles","New York Giants"],
+      ["Detroit Lions","Green Bay Packers"]
+    ],
+    NBA: [
+      ["Boston Celtics","Miami Heat"],
+      ["Denver Nuggets","LA Lakers"],
+      ["Milwaukee Bucks","New York Knicks"],
+      ["Golden State Warriors","Phoenix Suns"]
+    ],
+    MLB: [
+      ["Atlanta Braves","New York Mets"],
+      ["LA Dodgers","San Diego Padres"],
+      ["Houston Astros","Texas Rangers"]
+    ],
+    NHL: [
+      ["Florida Panthers","Tampa Bay Lightning"],
+      ["Toronto Maple Leafs","Boston Bruins"],
+      ["Colorado Avalanche","Vegas Golden Knights"]
+    ]
+  };
+
+  const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  function americanToImplied(o){
+    if (o < 0) return (-o) / ((-o) + 100) * 100;
+    return 100 / (o + 100) * 100;
+  }
+  function fmtOdds(o){ return o > 0 ? "+" + o : String(o); }
+
+  function genMoneyline(){
+    const favBase = -rand(110, 260);
+    const dogBase = Math.round(favBase * -1 * rand(85,105)/100);
+    const rows = { away: [], home: [] };
+    BOOKS.forEach(b=>{
+      rows.away.push({ book:b, val: dogBase + rand(-8,8) });
+      rows.home.push({ book:b, val: favBase + rand(-8,8) });
+    });
+    return rows;
+  }
+  function genSpread(){
+    const line = (rand(10,95)/10).toFixed(1);
+    const rows = { away: [], home: [] };
+    BOOKS.forEach(b=>{
+      const juice = -110 + rand(-6,6);
+      rows.away.push({ book:b, line: "+"+line, val: juice });
+      rows.home.push({ book:b, line: "-"+line, val: -110 + rand(-6,6) });
+    });
+    return rows;
+  }
+  function genTotal(){
+    const line = (rand(380,560)/10).toFixed(1);
+    const rows = { over: [], under: [] };
+    BOOKS.forEach(b=>{
+      rows.over.push({ book:b, line:"O "+line, val: -110 + rand(-6,6) });
+      rows.under.push({ book:b, line:"U "+line, val: -110 + rand(-6,6) });
+    });
+    return rows;
+  }
+
+  function generateGames(sport){
+    return TEAMS[sport].map((pair, i) => {
+      const day = ["Thu","Fri","Sat","Sun","Sun","Mon"][i % 6];
+      const hour = [1,4,7,8,10,11.5][i % 6];
+      const h = Math.floor(hour), m = hour % 1 ? "30" : "00";
+      return {
+        id: sport + "-" + i,
+        away: pair[0],
+        home: pair[1],
+        time: `${day} ${((h%12)||12)}:${m} ${h<12?"AM":"PM"} ET`,
+        ml: genMoneyline(),
+        spread: genSpread(),
+        total: genTotal()
+      };
+    });
+  }
+
+  let currentSport = "NFL";
+  let games = generateGames(currentSport);
+  let openGameId = null;
+  let activeMarket = {}; // gameId -> market
+
+  const boardEl = document.getElementById('board');
+  const summaryEl = document.getElementById('summaryStrip');
+  const searchInput = document.getElementById('searchInput');
+
+  function bestOf(rows, wantMax){
+    // wantMax: higher American odds value = better payout for bettor (works for both + and - in same direction? no)
+    // Correct rule: larger (more positive, or less negative) odds are always better for the bettor.
+    let best = rows[0];
+    rows.forEach(r=>{
+      if (r.val > best.val) best = r;
+    });
+    return best;
+  }
+
+  function renderOddsGrid(rows, side){
+    const best = bestOf(rows);
+    return `<div class="odds-grid">` + rows.map(r=>{
+      const isBest = r.book === best.book;
+      const cls = r.val > 0 ? 'pos' : 'neg';
+      const impl = americanToImplied(r.val).toFixed(1);
+      return `
+        <div class="book-cell ${isBest ? 'best' : ''}">
+          <div class="book-name">${r.book} ${isBest ? '<span class="best-badge">BEST</span>' : ''}</div>
+          <div class="flip-row">
+            <div class="flip-value ${cls}">
+              <span class="flip-inner">${r.line ? r.line + ' ' : ''}${fmtOdds(r.val)}</span>
+            </div>
+          </div>
+          <div class="implied">${impl}% implied</div>
+        </div>`;
+    }).join('') + `</div>`;
+  }
+
+  function marketPanel(game, market){
+    if (market === 'ml'){
+      return `
+        <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:10px;">${game.away} (away)</div>
+        ${renderOddsGrid(game.ml.away)}
+        <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);">${game.home} (home)</div>
+        ${renderOddsGrid(game.ml.home)}
+      `;
+    }
+    if (market === 'spread'){
+      return `
+        <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:10px;">${game.away} (away)</div>
+        ${renderOddsGrid(game.spread.away)}
+        <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);">${game.home} (home)</div>
+        ${renderOddsGrid(game.spread.home)}
+      `;
+    }
+    // total
+    return `
+      <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:10px;">Over</div>
+      ${renderOddsGrid(game.total.over)}
+      <div style="padding:2px 18px 0; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);">Under</div>
+      ${renderOddsGrid(game.total.under)}
+    `;
+  }
+
+  function bestEdgeLabel(game){
+    const mlHome = bestOf(game.ml.home);
+    const mlAway = bestOf(game.ml.away);
+    const spreadFavor = mlHome.val > mlAway.val ? mlHome : mlAway;
+    return `${spreadFavor.book} · ML edge`;
+  }
+
+  function renderBoard(){
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = games.filter(g =>
+      !query || g.away.toLowerCase().includes(query) || g.home.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0){
+      boardEl.innerHTML = `<div class="empty-state">No games match “${query}”. Try another team.</div>`;
+      return;
+    }
+
+    boardEl.innerHTML = filtered.map(game=>{
+      const isOpen = openGameId === game.id;
+      const market = activeMarket[game.id] || 'ml';
+      return `
+      <div class="game-card ${isOpen ? 'open' : ''}" data-id="${game.id}">
+        <div class="game-head" data-toggle="${game.id}">
+          <div class="matchup">
+            <div class="teams">
+              <div class="team-row"><span class="team-name">${game.away}</span></div>
+              <div class="vs-divider">at</div>
+              <div class="team-row"><span class="team-name">${game.home}</span></div>
+            </div>
+          </div>
+          <div class="game-meta">
+            <span class="best-edge-pill">Best: ${bestEdgeLabel(game)}</span>
+            <span class="game-time">${game.time}</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="game-body">
+          <div class="market-tabs" data-tabs-for="${game.id}">
+            <button data-market="ml" class="${market==='ml'?'active':''}">Moneyline</button>
+            <button data-market="spread" class="${market==='spread'?'active':''}">Spread</button>
+            <button data-market="total" class="${market==='total'?'active':''}">Total</button>
+          </div>
+          <div class="market-panel">
+            ${marketPanel(game, market)}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // wire up toggles
+    boardEl.querySelectorAll('[data-toggle]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const id = el.getAttribute('data-toggle');
+        openGameId = openGameId === id ? null : id;
+        renderBoard();
+      });
+    });
+    boardEl.querySelectorAll('[data-tabs-for] button').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const wrap = btn.closest('[data-tabs-for]');
+        const id = wrap.getAttribute('data-tabs-for');
+        activeMarket[id] = btn.getAttribute('data-market');
+        renderBoard();
+        // re-open since render resets DOM
+        openGameId = id;
+        boardEl.querySelectorAll('.game-card').forEach(c=>{
+          if (c.getAttribute('data-id') === id) c.classList.add('open');
+        });
+        playFlip();
+      });
+    });
+
+    playFlip();
+  }
+
+  function playFlip(){
+    document.querySelectorAll('.flip-inner').forEach((el,i)=>{
+      el.classList.remove('flipping');
+      void el.offsetWidth;
+      setTimeout(()=> el.classList.add('flipping'), i * 12);
+    });
+  }
+
+  function renderSummary(){
+    const total = games.length;
+    let bestBookCounts = {};
+    games.forEach(g=>{
+      [g.ml.home, g.ml.away].forEach(rows=>{
+        const b = bestOf(rows).book;
+        bestBookCounts[b] = (bestBookCounts[b]||0) + 1;
+      });
+    });
+    const topBook = Object.entries(bestBookCounts).sort((a,b)=>b[1]-a[1])[0];
+    summaryEl.innerHTML = `
+      <div class="summary-card">
+        <div class="label">Games on board</div>
+        <div class="value">${total}</div>
+        <div class="sub">${currentSport} · today's slate</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Most frequent best price</div>
+        <div class="value">${topBook ? topBook[0] : '—'}</div>
+        <div class="sub">${topBook ? topBook[1] + ' moneyline sides' : ''}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Books tracked</div>
+        <div class="value">${BOOKS.length}</div>
+        <div class="sub">${BOOKS.join(' · ')}</div>
+      </div>
+    `;
+  }
+
+  function switchSport(sport){
+    currentSport = sport;
+    games = generateGames(sport);
+    openGameId = null;
+    activeMarket = {};
+    document.querySelectorAll('#sportTabs button').forEach(b=>{
+      b.classList.toggle('active', b.getAttribute('data-sport') === sport);
+    });
+    renderSummary();
+    renderBoard();
+  }
+
+  document.getElementById('sportTabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-sport]');
+    if (!btn) return;
+    switchSport(btn.getAttribute('data-sport'));
+  });
+
+  searchInput.addEventListener('input', renderBoard);
+
+  function tickClock(){
+    const el = document.getElementById('clockTime');
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('en-US', { hour12:false });
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  renderSummary();
+  renderBoard();
+})();
+</script>
+
+</body>
+</html>

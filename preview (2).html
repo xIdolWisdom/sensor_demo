@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnBeat — Vanilla JS Drum Machine</title>
+
+  <style>
+    /* =========================================================
+       1) CSS VARIABLES
+       These are reusable values. Change them once and the whole
+       design updates.
+    ========================================================== */
+    :root {
+      --bg: #0b0f14;
+      --panel: #121923;
+      --panel-2: #182230;
+      --border: #273548;
+      --text: #f4f7fb;
+      --muted: #8e9bad;
+      --accent: #7dd3fc;
+      --accent-2: #34d399;
+      --danger: #fb7185;
+      --step-off: #1b2634;
+      --step-on: #7dd3fc;
+      --step-playing: #ffffff;
+      --radius: 16px;
+    }
+
+    /* Reset some browser defaults */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(125, 211, 252, 0.08), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(52, 211, 153, 0.08), transparent 26%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 6vw, 72px);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 650px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .badge {
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .machine {
+      background: rgba(18, 25, 35, 0.94);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 28px 80px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+      background: #0f1620;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 800;
+      transition: 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: #44617e;
+    }
+
+    .btn.playing {
+      background: var(--danger);
+      color: #1b070d;
+      border-color: transparent;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .control-group label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .control-group input[type="number"] {
+      width: 74px;
+      padding: 6px 8px;
+      border: 0;
+      outline: 0;
+      border-radius: 7px;
+      background: #0c121a;
+      color: var(--text);
+    }
+
+    .control-group input[type="range"] {
+      width: 130px;
+    }
+
+    .sequencer-wrap {
+      overflow-x: auto;
+      padding: 18px;
+    }
+
+    .sequencer {
+      min-width: 980px;
+    }
+
+    .step-header,
+    .track {
+      display: grid;
+      grid-template-columns: 150px repeat(16, 1fr);
+      gap: 7px;
+      align-items: center;
+    }
+
+    .step-header {
+      margin-bottom: 9px;
+    }
+
+    .step-number {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .step-number.beat {
+      color: var(--accent);
+    }
+
+    .track {
+      margin-bottom: 9px;
+    }
+
+    .track-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-right: 10px;
+    }
+
+    .track-name {
+      font-weight: 850;
+    }
+
+    .track-key {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* Each sequencer square is just a button */
+    .step {
+      aspect-ratio: 1 / 1;
+      min-width: 42px;
+      border: 1px solid #304057;
+      border-radius: 9px;
+      background: var(--step-off);
+      cursor: pointer;
+      transition: 0.1s ease;
+      position: relative;
+    }
+
+    .step:hover {
+      border-color: #567798;
+      transform: scale(1.03);
+    }
+
+    /* active means this step has a drum hit */
+    .step.active {
+      background: var(--step-on);
+      border-color: transparent;
+      box-shadow: 0 0 24px rgba(125, 211, 252, 0.18);
+    }
+
+    /* current-step is the vertical playhead */
+    .step.current-step {
+      outline: 2px solid var(--step-playing);
+      outline-offset: 2px;
+    }
+
+    /* Make beat divisions easier to read */
+    .step.beat-start::before {
+      content: "";
+      position: absolute;
+      left: -5px;
+      top: -4px;
+      bottom: -4px;
+      width: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    .help {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .help-card {
+      background: rgba(18,25,35,0.85);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .help-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .help-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    code {
+      color: var(--accent);
+      background: #0b121b;
+      border-radius: 5px;
+      padding: 2px 5px;
+    }
+
+    @media (max-width: 800px) {
+      .hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .help {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+
+    <!-- ======================================================
+         HTML SECTION
+         HTML creates the visible structure of the app.
+    ======================================================= -->
+
+    <section class="hero">
+      <div>
+        <div class="badge">HTML + CSS + JavaScript only</div>
+        <h1>LearnBeat</h1>
+        <p>
+          A tiny drum machine made from scratch. Click steps to create a rhythm,
+          press play, change the BPM, and inspect the source code to learn how
+          the browser can synthesize sound using the Web Audio API.
+        </p>
+      </div>
+      <div class="badge">16-step sequencer</div>
+    </section>
+
+    <section class="machine">
+      <div class="controls">
+
+        <!-- JavaScript will listen for clicks on this button -->
+        <button id="playButton" class="btn">▶ Play</button>
+
+        <button id="clearButton" class="btn">Clear</button>
+
+        <button id="demoButton" class="btn">Load Demo Beat</button>
+
+        <div class="control-group">
+          <label for="bpmInput">BPM</label>
+          <input id="bpmInput" type="number" min="50" max="220" value="120" />
+        </div>
+
+        <div class="control-group">
+          <label for="volumeInput">Volume</label>
+          <input id="volumeInput" type="range" min="0" max="1" step="0.01" value="0.7" />
+        </div>
+      </div>
+
+      <div class="sequencer-wrap">
+        <div class="sequencer">
+          <div class="step-header" id="stepHeader"></div>
+          <div id="tracks"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="help">
+      <article class="help-card">
+        <h3>1. HTML = structure</h3>
+        <p>
+          The controls and sequencer live in ordinary HTML elements such as
+          <code>button</code>, <code>input</code>, and <code>div</code>.
+        </p>
+      </article>
+
+      <article class="help-card">
+        <h3>2. CSS = appearance</h3>
+        <p>
+          CSS controls colors, spacing, grid layout, hover effects, responsive
+          behavior, and the visual state of active steps.
+        </p>
+      </article>
+
+      <article class="help-card">
+        <h3>3. JavaScript = behavior</h3>
+        <p>
+          JavaScript stores the beat pattern, advances the playhead, responds
+          to clicks, and creates the kick, snare, hi-hat, and clap sounds.
+        </p>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    /* =========================================================
+       JAVASCRIPT SECTION
+       JavaScript gives the page memory and behavior.
+    ========================================================== */
+
+
+    /* ---------------------------------------------------------
+       1) APP DATA
+
+       Each track stores:
+       - name: display name
+       - key: keyboard shortcut
+       - sound: which sound function to call
+       - pattern: 16 booleans (true = hit, false = silence)
+    ---------------------------------------------------------- */
+
+    const tracks = [
+      {
+        name: "Kick",
+        key: "A",
+        sound: "kick",
+        pattern: Array(16).fill(false)
+      },
+      {
+        name: "Snare",
+        key: "S",
+        sound: "snare",
+        pattern: Array(16).fill(false)
+      },
+      {
+        name: "Hi-Hat",
+        key: "D",
+        sound: "hat",
+        pattern: Array(16).fill(false)
+      },
+      {
+        name: "Clap",
+        key: "F",
+        sound: "clap",
+        pattern: Array(16).fill(false)
+      }
+    ];
+
+
+    /* ---------------------------------------------------------
+       2) DOM REFERENCES
+
+       document.getElementById(...) lets JavaScript grab
+       existing HTML elements and manipulate them.
+    ---------------------------------------------------------- */
+
+    const playButton = document.getElementById("playButton");
+    const clearButton = document.getElementById("clearButton");
+    const demoButton = document.getElementById("demoButton");
+    const bpmInput = document.getElementById("bpmInput");
+    const volumeInput = document.getElementById("volumeInput");
+    const stepHeader = document.getElementById("stepHeader");
+    const tracksElement = document.getElementById("tracks");
+
+
+    /* ---------------------------------------------------------
+       3) SEQUENCER STATE
+    ---------------------------------------------------------- */
+
+    let isPlaying = false;
+    let currentStep = 0;
+    let timer = null;
+
+
+    /* ---------------------------------------------------------
+       4) WEB AUDIO SETUP
+
+       AudioContext is the browser's built-in audio engine.
+
+       We don't need MP3 files here. We create synthetic drum
+       sounds using oscillators, noise, filters, and gain nodes.
+    ---------------------------------------------------------- */
+
+    let audioContext = null;
+    let masterGain = null;
+
+    function setupAudio() {
+      // Browsers require audio to start after user interaction.
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = Number(volumeInput.value);
+
+        // Everything eventually connects to the speakers.
+        masterGain.connect(audioContext.destination);
+      }
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+
+    /* ---------------------------------------------------------
+       5) DRUM SOUND FUNCTIONS
+    ---------------------------------------------------------- */
+
+    function playKick() {
+      setupAudio();
+
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      // A kick drum quickly drops in pitch.
+      osc.frequency.setValueAtTime(150, audioContext.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(
+        45,
+        audioContext.currentTime + 0.18
+      );
+
+      gain.gain.setValueAtTime(1, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + 0.25
+      );
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start();
+      osc.stop(audioContext.currentTime + 0.25);
+    }
+
+
+    function playSnare() {
+      setupAudio();
+
+      // Noise gives snares their "shhh" sound.
+      const bufferSize = audioContext.sampleRate * 0.2;
+      const buffer = audioContext.createBuffer(
+        1,
+        bufferSize,
+        audioContext.sampleRate
+      );
+
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioContext.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = 1000;
+
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.7, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.18
+      );
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+
+      noise.start();
+    }
+
+
+    function playHat() {
+      setupAudio();
+
+      const bufferSize = audioContext.sampleRate * 0.08;
+      const buffer = audioContext.createBuffer(
+        1,
+        bufferSize,
+        audioContext.sampleRate
+      );
+
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioContext.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = 6500;
+
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.35, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.06
+      );
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+
+      noise.start();
+    }
+
+
+    function playClap() {
+      setupAudio();
+
+      // A simple clap is multiple tiny bursts of noise.
+      [0, 0.025, 0.05].forEach(delay => {
+        const bufferSize = audioContext.sampleRate * 0.07;
+        const buffer = audioContext.createBuffer(
+          1,
+          bufferSize,
+          audioContext.sampleRate
+        );
+
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioContext.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 1400;
+
+        const gain = audioContext.createGain();
+
+        const startTime = audioContext.currentTime + delay;
+
+        gain.gain.setValueAtTime(0.35, startTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          startTime + 0.07
+        );
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        noise.start(startTime);
+      });
+    }
+
+
+    /* This function chooses which drum sound to play. */
+    function triggerSound(soundName) {
+      if (soundName === "kick") playKick();
+      if (soundName === "snare") playSnare();
+      if (soundName === "hat") playHat();
+      if (soundName === "clap") playClap();
+    }
+
+
+    /* ---------------------------------------------------------
+       6) CREATE THE SEQUENCER UI
+
+       Instead of manually writing 64 buttons in HTML,
+       JavaScript generates them from our tracks array.
+    ---------------------------------------------------------- */
+
+    function renderSequencer() {
+      // First create the step numbers.
+      stepHeader.innerHTML =
+        "<div></div>" +
+        Array.from({ length: 16 }, (_, i) => {
+          const number = i + 1;
+          const isBeat = i % 4 === 0;
+
+          return `
+            <div class="step-number ${isBeat ? "beat" : ""}">
+              ${number}
+            </div>
+          `;
+        }).join("");
+
+      // Then create each track and its 16 buttons.
+      tracksElement.innerHTML = tracks.map((track, trackIndex) => {
+        const stepButtons = track.pattern.map((active, stepIndex) => {
+          const beatStart = stepIndex % 4 === 0;
+
+          return `
+            <button
+              class="step ${active ? "active" : ""} ${beatStart ? "beat-start" : ""}"
+              data-track="${trackIndex}"
+              data-step="${stepIndex}"
+              aria-label="${track.name} step ${stepIndex + 1}"
+            ></button>
+          `;
+        }).join("");
+
+        return `
+          <div class="track">
+            <div class="track-label">
+              <span class="track-name">${track.name}</span>
+              <span class="track-key">Key ${track.key}</span>
+            </div>
+
+            ${stepButtons}
+          </div>
+        `;
+      }).join("");
+
+      // Add click listeners to every newly-created step button.
+      document.querySelectorAll(".step").forEach(button => {
+        button.addEventListener("click", () => {
+          const trackIndex = Number(button.dataset.track);
+          const stepIndex = Number(button.dataset.step);
+
+          // Flip true -> false or false -> true.
+          tracks[trackIndex].pattern[stepIndex] =
+            !tracks[trackIndex].pattern[stepIndex];
+
+          // Play the sound immediately when turning it on.
+          if (tracks[trackIndex].pattern[stepIndex]) {
+            triggerSound(tracks[trackIndex].sound);
+          }
+
+          renderSequencer();
+          updatePlayhead();
+        });
+      });
+    }
+
+
+    /* ---------------------------------------------------------
+       7) PLAYHEAD
+
+       Every time the sequencer advances:
+       - highlight the current column
+       - check every track at that step
+       - play active sounds
+    ---------------------------------------------------------- */
+
+    function playStep() {
+      tracks.forEach(track => {
+        if (track.pattern[currentStep]) {
+          triggerSound(track.sound);
+        }
+      });
+
+      updatePlayhead();
+
+      currentStep = (currentStep + 1) % 16;
+    }
+
+
+    function updatePlayhead() {
+      document.querySelectorAll(".step").forEach(button => {
+        const step = Number(button.dataset.step);
+
+        button.classList.toggle(
+          "current-step",
+          isPlaying && step === currentStep
+        );
+      });
+    }
+
+
+    /* ---------------------------------------------------------
+       8) BPM MATH
+
+       BPM = quarter notes per minute.
+
+       A 16-step sequencer normally uses sixteenth notes.
+
+       Quarter note duration:
+         60,000 ms / BPM
+
+       Sixteenth note duration:
+         quarter note / 4
+    ---------------------------------------------------------- */
+
+    function getStepDuration() {
+      const bpm = Math.min(220, Math.max(50, Number(bpmInput.value) || 120));
+      return (60000 / bpm) / 4;
+    }
+
+
+    /* ---------------------------------------------------------
+       9) PLAY / STOP
+    ---------------------------------------------------------- */
+
+    function startSequencer() {
+      setupAudio();
+
+      if (isPlaying) return;
+
+      isPlaying = true;
+      playButton.textContent = "■ Stop";
+      playButton.classList.add("playing");
+
+      // Play immediately, then continue using setInterval.
+      playStep();
+
+      timer = setInterval(() => {
+        playStep();
+      }, getStepDuration());
+    }
+
+
+    function stopSequencer() {
+      isPlaying = false;
+
+      clearInterval(timer);
+      timer = null;
+
+      currentStep = 0;
+
+      playButton.textContent = "▶ Play";
+      playButton.classList.remove("playing");
+
+      updatePlayhead();
+    }
+
+
+    function restartTimerIfPlaying() {
+      if (!isPlaying) return;
+
+      clearInterval(timer);
+
+      timer = setInterval(() => {
+        playStep();
+      }, getStepDuration());
+    }
+
+
+    /* ---------------------------------------------------------
+       10) BUTTON EVENTS
+    ---------------------------------------------------------- */
+
+    playButton.addEventListener("click", () => {
+      if (isPlaying) {
+        stopSequencer();
+      } else {
+        startSequencer();
+      }
+    });
+
+
+    clearButton.addEventListener("click", () => {
+      tracks.forEach(track => {
+        track.pattern.fill(false);
+      });
+
+      renderSequencer();
+      updatePlayhead();
+    });
+
+
+    demoButton.addEventListener("click", () => {
+      // A basic four-on-the-floor style pattern.
+
+      tracks[0].pattern = [
+        true,false,false,false,
+        true,false,false,false,
+        true,false,false,false,
+        true,false,false,false
+      ];
+
+      tracks[1].pattern = [
+        false,false,false,false,
+        true,false,false,false,
+        false,false,false,false,
+        true,false,false,false
+      ];
+
+      tracks[2].pattern = [
+        true,false,true,false,
+        true,false,true,false,
+        true,false,true,false,
+        true,false,true,false
+      ];
+
+      tracks[3].pattern = [
+        false,false,false,false,
+        true,false,false,false,
+        false,false,false,false,
+        true,false,false,false
+      ];
+
+      renderSequencer();
+      updatePlayhead();
+    });
+
+
+    bpmInput.addEventListener("change", restartTimerIfPlaying);
+
+
+    volumeInput.addEventListener("input", () => {
+      if (masterGain) {
+        masterGain.gain.value = Number(volumeInput.value);
+      }
+    });
+
+
+    /* ---------------------------------------------------------
+       11) KEYBOARD DRUM PADS
+
+       Press:
+       A = kick
+       S = snare
+       D = hi-hat
+       F = clap
+       Space = play / stop
+    ---------------------------------------------------------- */
+
+    document.addEventListener("keydown", event => {
+      // Prevent repeated firing while a key is held down.
+      if (event.repeat) return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === "a") triggerSound("kick");
+      if (key === "s") triggerSound("snare");
+      if (key === "d") triggerSound("hat");
+      if (key === "f") triggerSound("clap");
+
+      if (event.code === "Space") {
+        event.preventDefault();
+
+        if (isPlaying) {
+          stopSequencer();
+        } else {
+          startSequencer();
+        }
+      }
+    });
+
+
+    /* ---------------------------------------------------------
+       12) INITIAL RENDER
+
+       This runs once when the page loads.
+    ---------------------------------------------------------- */
+
+    renderSequencer();
+  </script>
+</body>
+</html>

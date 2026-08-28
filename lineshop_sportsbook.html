@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LineShop — Sportsbook Line Shopping</title>
+  <style>
+    :root{
+      --bg:#070b12;
+      --panel:#0f1622;
+      --panel-2:#131c2a;
+      --border:#223047;
+      --text:#f6f8fb;
+      --muted:#8f9cb0;
+      --green:#36d399;
+      --green-dark:#133d31;
+      --blue:#6aa9ff;
+      --yellow:#ffc857;
+      --red:#ff6b6b;
+      --shadow:0 16px 50px rgba(0,0,0,.28);
+      --radius:16px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 20% -10%, rgba(106,169,255,.12), transparent 34%),
+        radial-gradient(circle at 90% 0%, rgba(54,211,153,.08), transparent 28%),
+        var(--bg);
+      color:var(--text);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,input,select{font:inherit}
+
+    .app-shell{
+      max-width:1500px;
+      margin:0 auto;
+      padding:0 22px 40px;
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter:blur(18px);
+      background:rgba(7,11,18,.78);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      margin:0 -22px;
+      padding:16px 22px;
+    }
+
+    .topbar{
+      max-width:1500px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:800;
+      letter-spacing:-.04em;
+      font-size:21px;
+    }
+
+    .brand-mark{
+      width:36px;height:36px;
+      display:grid;place-items:center;
+      border-radius:11px;
+      color:#06130e;
+      background:linear-gradient(135deg,#5bf0b8,#33c991);
+      box-shadow:0 0 30px rgba(54,211,153,.18);
+      font-weight:950;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .ghost-btn,.primary-btn{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 14px;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .ghost-btn{
+      background:#0d1420;
+      color:var(--text);
+    }
+    .ghost-btn:hover{border-color:#38516f;background:#121c2a}
+
+    .primary-btn{
+      color:#04140e;
+      border-color:transparent;
+      background:var(--green);
+      font-weight:800;
+    }
+    .primary-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+
+    .hero{
+      padding:38px 0 24px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:25px;
+    }
+
+    .hero h1{
+      font-size:clamp(34px,5vw,68px);
+      line-height:.95;
+      margin:0 0 16px;
+      letter-spacing:-.065em;
+      max-width:850px;
+    }
+
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      max-width:670px;
+      line-height:1.65;
+      font-size:16px;
+    }
+
+    .best-line-card{
+      min-width:270px;
+      background:linear-gradient(145deg,#111d27,#0f171f);
+      border:1px solid rgba(54,211,153,.22);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+
+    .eyebrow{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .best-line-card strong{
+      display:block;
+      font-size:28px;
+      margin:7px 0 2px;
+      color:var(--green);
+    }
+
+    .best-line-card small{color:var(--muted)}
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin:10px 0 18px;
+    }
+
+    .segmented{
+      display:flex;
+      gap:7px;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:13px;
+      padding:6px;
+    }
+
+    .segmented button{
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      border-radius:9px;
+      padding:9px 13px;
+      cursor:pointer;
+      font-weight:750;
+    }
+
+    .segmented button.active{
+      background:#203047;
+      color:#fff;
+    }
+
+    .search{
+      margin-left:auto;
+      min-width:230px;
+      flex:1;
+      max-width:340px;
+      position:relative;
+    }
+
+    .search input{
+      width:100%;
+      color:var(--text);
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px 14px;
+      outline:none;
+    }
+
+    .search input:focus{border-color:#42628b}
+
+    .content-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 330px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .main-panel,
+    .betslip{
+      background:rgba(15,22,34,.82);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .main-panel{overflow:hidden}
+
+    .panel-head{
+      padding:17px 18px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+    }
+
+    .panel-head h2{
+      font-size:16px;
+      margin:0;
+      letter-spacing:-.02em;
+    }
+
+    .panel-head span{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .sportsbook-legend{
+      display:grid;
+      grid-template-columns:minmax(270px,1.5fr) repeat(5,minmax(110px,1fr));
+      gap:8px;
+      padding:11px 14px;
+      border-bottom:1px solid var(--border);
+      background:#0a1019;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      min-width:980px;
+    }
+
+    .board-scroll{overflow-x:auto}
+
+    .game{
+      min-width:980px;
+      border-bottom:1px solid var(--border);
+    }
+    .game:last-child{border-bottom:0}
+
+    .game-main{
+      display:grid;
+      grid-template-columns:minmax(270px,1.5fr) repeat(5,minmax(110px,1fr));
+      gap:8px;
+      padding:14px;
+      align-items:stretch;
+    }
+
+    .matchup{
+      padding:7px 7px 7px 2px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:9px;
+    }
+
+    .league{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.09em;
+    }
+
+    .team-line{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:750;
+    }
+
+    .team-line span:last-child{color:var(--muted);font-weight:600}
+
+    .time{
+      margin-top:2px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .book-col{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+
+    .book-label{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      color:#b8c3d3;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .book-dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--blue);
+    }
+
+    .odds-btn{
+      min-height:46px;
+      padding:8px 10px;
+      background:#141f2d;
+      border:1px solid #24364e;
+      color:var(--text);
+      border-radius:10px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      transition:.15s ease;
+      position:relative;
+    }
+
+    .odds-btn:hover{
+      border-color:#52739f;
+      background:#19283a;
+      transform:translateY(-1px);
+    }
+
+    .odds-btn.best{
+      border-color:rgba(54,211,153,.7);
+      background:linear-gradient(180deg,#18352f,#132821);
+    }
+
+    .odds-btn.best::after{
+      content:"BEST";
+      position:absolute;
+      top:4px;
+      right:5px;
+      font-size:8px;
+      line-height:1;
+      color:var(--green);
+      font-weight:950;
+      letter-spacing:.08em;
+    }
+
+    .odds-btn .line{font-size:11px;color:var(--muted);margin-bottom:2px}
+    .odds-btn .price{font-size:15px;font-weight:850}
+
+    .market-toggle{
+      display:flex;
+      justify-content:flex-end;
+      padding:0 14px 12px;
+    }
+
+    .market-toggle button{
+      background:transparent;
+      color:var(--muted);
+      border:0;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:750;
+    }
+
+    .game-extra{
+      display:none;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      padding:0 14px 14px;
+    }
+    .game.open .game-extra{display:grid}
+
+    .extra-card{
+      background:#0b121c;
+      border:1px solid var(--border);
+      border-radius:11px;
+      padding:12px;
+    }
+    .extra-card strong{display:block;font-size:13px;margin-bottom:8px}
+    .extra-card div{color:var(--muted);font-size:12px;line-height:1.7}
+
+    .betslip{
+      position:sticky;
+      top:82px;
+      overflow:hidden;
+    }
+
+    .betslip-body{
+      padding:14px;
+      min-height:180px;
+    }
+
+    .empty{
+      padding:26px 8px;
+      text-align:center;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:13px;
+    }
+
+    .pick{
+      border:1px solid var(--border);
+      background:#0b121c;
+      border-radius:11px;
+      padding:11px;
+      margin-bottom:9px;
+    }
+
+    .pick-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:start;
+      gap:8px;
+    }
+
+    .pick-title{font-weight:800;font-size:13px}
+    .pick-sub{color:var(--muted);font-size:11px;margin-top:4px}
+    .pick-price{font-weight:900;color:var(--green)}
+    .remove{
+      background:transparent;
+      border:0;
+      color:var(--muted);
+      cursor:pointer;
+      padding:0 0 0 6px;
+      font-size:18px;
+      line-height:1;
+    }
+
+    .stake{
+      margin-top:12px;
+      border-top:1px solid var(--border);
+      padding-top:12px;
+    }
+
+    .stake label{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .stake input{
+      width:100%;
+      margin-top:7px;
+      background:#101927;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:10px;
+      padding:11px 12px;
+      outline:none;
+    }
+
+    .return-row{
+      display:flex;
+      justify-content:space-between;
+      margin-top:12px;
+      font-size:13px;
+    }
+
+    .return-row strong{color:var(--green)}
+
+    .bet-footer{
+      padding:14px;
+      border-top:1px solid var(--border);
+    }
+
+    .place-btn{
+      width:100%;
+      border:0;
+      border-radius:11px;
+      padding:12px;
+      background:#253448;
+      color:#91a0b3;
+      font-weight:900;
+      cursor:not-allowed;
+    }
+
+    .book-filter-row{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding:0 0 16px;
+      scrollbar-width:none;
+    }
+    .book-filter-row::-webkit-scrollbar{display:none}
+
+    .book-chip{
+      white-space:nowrap;
+      border:1px solid var(--border);
+      background:#0d1420;
+      color:var(--muted);
+      border-radius:999px;
+      padding:8px 11px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:750;
+    }
+
+    .book-chip.active{
+      color:var(--text);
+      border-color:#42628b;
+      background:#152236;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 8px;
+      border-radius:999px;
+      background:rgba(54,211,153,.09);
+      color:var(--green);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .notice{
+      margin-top:14px;
+      color:#718095;
+      font-size:11px;
+      line-height:1.55;
+    }
+
+    @media(max-width:1080px){
+      .content-grid{grid-template-columns:1fr}
+      .betslip{position:relative;top:auto}
+      .hero{align-items:flex-start;flex-direction:column}
+      .best-line-card{width:100%}
+    }
+
+    @media(max-width:680px){
+      .app-shell{padding-left:14px;padding-right:14px}
+      header{margin:0 -14px;padding-left:14px;padding-right:14px}
+      .top-actions .ghost-btn{display:none}
+      .hero{padding-top:28px}
+      .toolbar{align-items:stretch}
+      .search{margin-left:0;max-width:none;width:100%}
+      .segmented{overflow-x:auto}
+      .game-extra{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">L</div>
+          <div>LineShop</div>
+        </div>
+        <div class="top-actions">
+          <button class="ghost-btn" onclick="toggleAmerican()">Odds: <span id="oddsFormat">American</span></button>
+          <button class="primary-btn" onclick="scrollToBoard()">Shop Lines</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Sportsbook line comparison</div>
+        <h1>Never settle for the first number.</h1>
+        <p>Compare mock sportsbook prices side-by-side, identify the best available line, and build a demo bet slip without leaving the page.</p>
+      </div>
+      <div class="best-line-card">
+        <div class="eyebrow">Potential line value</div>
+        <strong>+12.4%</strong>
+        <small>Average improvement shown in this demo board</small>
+      </div>
+    </section>
+
+    <div class="book-filter-row" id="bookFilters"></div>
+
+    <div class="toolbar">
+      <div class="segmented" id="sportTabs">
+        <button class="active" data-sport="All">All</button>
+        <button data-sport="NFL">NFL</button>
+        <button data-sport="NCAAF">NCAAF</button>
+        <button data-sport="NBA">NBA</button>
+        <button data-sport="Soccer">Soccer</button>
+      </div>
+
+      <div class="segmented" id="marketTabs">
+        <button class="active" data-market="Moneyline">Moneyline</button>
+        <button data-market="Spread">Spread</button>
+        <button data-market="Total">Total</button>
+      </div>
+
+      <div class="search">
+        <input id="searchInput" placeholder="Search teams or league..." />
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <main class="main-panel" id="board">
+        <div class="panel-head">
+          <div>
+            <h2>Best available lines</h2>
+            <span id="resultCount">0 games</span>
+          </div>
+          <span class="pill">● Demo odds</span>
+        </div>
+
+        <div class="board-scroll">
+          <div class="sportsbook-legend">
+            <div>Matchup</div>
+            <div>DraftKings</div>
+            <div>FanDuel</div>
+            <div>BetMGM</div>
+            <div>Caesars</div>
+            <div>ESPN BET</div>
+          </div>
+          <div id="games"></div>
+        </div>
+      </main>
+
+      <aside class="betslip">
+        <div class="panel-head">
+          <h2>Bet slip</h2>
+          <span id="pickCount">0 selections</span>
+        </div>
+        <div class="betslip-body" id="betslipBody">
+          <div class="empty">Select any price on the board to add it here. This demo does not place real wagers.</div>
+        </div>
+        <div class="bet-footer">
+          <button class="place-btn">Demo only — no wagering</button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="notice">
+      LineShop is a front-end demonstration with fictional sample odds. It is not connected to any sportsbook or wagering account.
+    </div>
+  </div>
+
+  <script>
+    const books = ["DraftKings","FanDuel","BetMGM","Caesars","ESPN BET"];
+
+    const games = [
+      {
+        id:1, sport:"NFL", league:"NFL", time:"Sun • 1:00 PM",
+        away:"Miami Dolphins", home:"Buffalo Bills",
+        moneyline:[
+          {book:"DraftKings", a:-105, h:-115},
+          {book:"FanDuel", a:+102, h:-120},
+          {book:"BetMGM", a:-101, h:-118},
+          {book:"Caesars", a:+100, h:-119},
+          {book:"ESPN BET", a:-104, h:-116}
+        ],
+        spread:[
+          {book:"DraftKings", a:["-1.5",-108], h:["+1.5",-112]},
+          {book:"FanDuel", a:["-1",-105], h:["+1",-115]},
+          {book:"BetMGM", a:["-1.5",-105], h:["+1.5",-115]},
+          {book:"Caesars", a:["-1",-110], h:["+1",-110]},
+          {book:"ESPN BET", a:["-1.5",-110], h:["+1.5",-110]}
+        ],
+        total:[
+          {book:"DraftKings", a:["O 48.5",-110], h:["U 48.5",-110]},
+          {book:"FanDuel", a:["O 48.5",-105], h:["U 48.5",-115]},
+          {book:"BetMGM", a:["O 49",-115], h:["U 49",-105]},
+          {book:"Caesars", a:["O 48.5",-108], h:["U 48.5",-112]},
+          {book:"ESPN BET", a:["O 49",-110], h:["U 49",-110]}
+        ]
+      },
+      {
+        id:2, sport:"NCAAF", league:"NCAAF", time:"Sat • 7:30 PM",
+        away:"Miami Hurricanes", home:"Florida Gators",
+        moneyline:[
+          {book:"DraftKings", a:-145, h:+125},
+          {book:"FanDuel", a:-138, h:+118},
+          {book:"BetMGM", a:-142, h:+122},
+          {book:"Caesars", a:-140, h:+124},
+          {book:"ESPN BET", a:-146, h:+128}
+        ],
+        spread:[
+          {book:"DraftKings", a:["-3",-110], h:["+3",-110]},
+          {book:"FanDuel", a:["-2.5",-115], h:["+2.5",-105]},
+          {book:"BetMGM", a:["-3",-105], h:["+3",-115]},
+          {book:"Caesars", a:["-2.5",-110], h:["+2.5",-110]},
+          {book:"ESPN BET", a:["-3",-112], h:["+3",-108]}
+        ],
+        total:[
+          {book:"DraftKings", a:["O 52.5",-108], h:["U 52.5",-112]},
+          {book:"FanDuel", a:["O 52.5",-105], h:["U 52.5",-115]},
+          {book:"BetMGM", a:["O 53",-110], h:["U 53",-110]},
+          {book:"Caesars", a:["O 52",-115], h:["U 52",-105]},
+          {book:"ESPN BET", a:["O 52.5",-110], h:["U 52.5",-110]}
+        ]
+      },
+      {
+        id:3, sport:"NBA", league:"NBA", time:"Fri • 8:00 PM",
+        away:"Boston Celtics", home:"New York Knicks",
+        moneyline:[
+          {book:"DraftKings", a:-112, h:-108},
+          {book:"FanDuel", a:-108, h:-112},
+          {book:"BetMGM", a:-110, h:-110},
+          {book:"Caesars", a:-106, h:-114},
+          {book:"ESPN BET", a:-109, h:-111}
+        ],
+        spread:[
+          {book:"DraftKings", a:["-1",-110], h:["+1",-110]},
+          {book:"FanDuel", a:["-1",-105], h:["+1",-115]},
+          {book:"BetMGM", a:["-1.5",-115], h:["+1.5",-105]},
+          {book:"Caesars", a:["-1",-108], h:["+1",-112]},
+          {book:"ESPN BET", a:["-1.5",-110], h:["+1.5",-110]}
+        ],
+        total:[
+          {book:"DraftKings", a:["O 224.5",-110], h:["U 224.5",-110]},
+          {book:"FanDuel", a:["O 225",-105], h:["U 225",-115]},
+          {book:"BetMGM", a:["O 224.5",-108], h:["U 224.5",-112]},
+          {book:"Caesars", a:["O 225",-110], h:["U 225",-110]},
+          {book:"ESPN BET", a:["O 224",-115], h:["U 224",-105]}
+        ]
+      },
+      {
+        id:4, sport:"Soccer", league:"La Liga", time:"Sun • 3:00 PM",
+        away:"Real Madrid", home:"Atlético Madrid",
+        moneyline:[
+          {book:"DraftKings", a:+132, h:+205},
+          {book:"FanDuel", a:+138, h:+200},
+          {book:"BetMGM", a:+135, h:+210},
+          {book:"Caesars", a:+140, h:+198},
+          {book:"ESPN BET", a:+134, h:+215}
+        ],
+        spread:[
+          {book:"DraftKings", a:["-0.5",+125], h:["+0.5",-145]},
+          {book:"FanDuel", a:["-0.5",+130], h:["+0.5",-150]},
+          {book:"BetMGM", a:["-0.5",+128], h:["+0.5",-148]},
+          {book:"Caesars", a:["-0.5",+132], h:["+0.5",-152]},
+          {book:"ESPN BET", a:["-0.5",+126], h:["+0.5",-146]}
+        ],
+        total:[
+          {book:"DraftKings", a:["O 2.5",-105], h:["U 2.5",-115]},
+          {book:"FanDuel", a:["O 2.5",-102], h:["U 2.5",-118]},
+          {book:"BetMGM", a:["O 2.5",-108], h:["U 2.5",-112]},
+          {book:"Caesars", a:["O 2.5",+100], h:["U 2.5",-120]},
+          {book:"ESPN BET", a:["O 2.5",-104], h:["U 2.5",-116]}
+        ]
+      },
+      {
+        id:5, sport:"Soccer", league:"Bundesliga", time:"Sat • 12:30 PM",
+        away:"Bayern Munich", home:"Borussia Dortmund",
+        moneyline:[
+          {book:"DraftKings", a:-120, h:+275},
+          {book:"FanDuel", a:-115, h:+280},
+          {book:"BetMGM", a:-118, h:+270},
+          {book:"Caesars", a:-112, h:+285},
+          {book:"ESPN BET", a:-117, h:+290}
+        ],
+        spread:[
+          {book:"DraftKings", a:["-0.5",-115], h:["+0.5",-105]},
+          {book:"FanDuel", a:["-0.5",-110], h:["+0.5",-110]},
+          {book:"BetMGM", a:["-0.5",-112], h:["+0.5",-108]},
+          {book:"Caesars", a:["-0.5",-108], h:["+0.5",-112]},
+          {book:"ESPN BET", a:["-0.5",-114], h:["+0.5",-106]}
+        ],
+        total:[
+          {book:"DraftKings", a:["O 3.5",+110], h:["U 3.5",-130]},
+          {book:"FanDuel", a:["O 3.5",+115], h:["U 3.5",-135]},
+          {book:"BetMGM", a:["O 3.5",+112], h:["U 3.5",-132]},
+          {book:"Caesars", a:["O 3.5",+118], h:["U 3.5",-138]},
+          {book:"ESPN BET", a:["O 3.5",+108], h:["U 3.5",-128]}
+        ]
+      }
+    ];
+
+    let activeSport = "All";
+    let activeMarket = "Moneyline";
+    let activeBooks = new Set(books);
+    let american = true;
+    let picks = [];
+
+    function americanToDecimal(n){
+      return n > 0 ? (1 + n/100) : (1 + 100/Math.abs(n));
+    }
+
+    function formatOdds(n){
+      if(american) return n > 0 ? `+${n}` : `${n}`;
+      return americanToDecimal(n).toFixed(2);
+    }
+
+    function scoreOdds(n){
+      return americanToDecimal(n);
+    }
+
+    function getBestIndex(entries, side){
+      let best = -Infinity;
+      let idx = -1;
+      entries.forEach((e,i)=>{
+        const price = activeMarket === "Moneyline" ? e[side] : e[side][1];
+        if(activeBooks.has(e.book) && scoreOdds(price) > best){
+          best = scoreOdds(price);
+          idx = i;
+        }
+      });
+      return idx;
+    }
+
+    function lineValue(entry, side){
+      if(activeMarket === "Moneyline"){
+        return {line:"ML", price:entry[side]};
+      }
+      return {line:entry[side][0], price:entry[side][1]};
+    }
+
+    function renderBookFilters(){
+      const root = document.getElementById("bookFilters");
+      root.innerHTML = books.map(b=>`
+        <button class="book-chip ${activeBooks.has(b) ? "active":""}" data-book="${b}">${b}</button>
+      `).join("");
+
+      root.querySelectorAll(".book-chip").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+          const book = btn.dataset.book;
+          if(activeBooks.has(book)){
+            if(activeBooks.size > 1) activeBooks.delete(book);
+          } else activeBooks.add(book);
+          renderBookFilters();
+          renderGames();
+        });
+      });
+    }
+
+    function renderGames(){
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const filtered = games.filter(g =>
+        (activeSport==="All" || g.sport===activeSport) &&
+        (!q || `${g.away} ${g.home} ${g.league}`.toLowerCase().includes(q))
+      );
+
+      document.getElementById("resultCount").textContent =
+        `${filtered.length} game${filtered.length===1?"":"s"}`;
+
+      const root = document.getElementById("games");
+
+      if(!filtered.length){
+        root.innerHTML = `<div class="empty" style="padding:50px 20px">No matchups found.</div>`;
+        return;
+      }
+
+      root.innerHTML = filtered.map(g=>{
+        const entries = g[activeMarket.toLowerCase()];
+        const bestA = getBestIndex(entries,"a");
+        const bestH = getBestIndex(entries,"h");
+
+        const columns = entries.map((entry,i)=>{
+          const hidden = !activeBooks.has(entry.book);
+          const away = lineValue(entry,"a");
+          const home = lineValue(entry,"h");
+          return `
+            <div class="book-col" style="${hidden ? "opacity:.18;pointer-events:none":""}">
+              <div class="book-label"><span class="book-dot"></span>${entry.book}</div>
+              <button class="odds-btn ${i===bestA?"best":""}"
+                onclick='addPick(${JSON.stringify({
+                  gameId:g.id, team:g.away, opponent:g.home, book:entry.book,
+                  side:"away"
+                })})'>
+                <span class="line">${away.line}</span>
+                <span class="price">${formatOdds(away.price)}</span>
+              </button>
+              <button class="odds-btn ${i===bestH?"best":""}"
+                onclick='addPick(${JSON.stringify({
+                  gameId:g.id, team:g.home, opponent:g.away, book:entry.book,
+                  side:"home"
+                })})'>
+                <span class="line">${home.line}</span>
+                <span class="price">${formatOdds(home.price)}</span>
+              </button>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <section class="game" id="game-${g.id}">
+            <div class="game-main">
+              <div class="matchup">
+                <div class="league">${g.league}</div>
+                <div class="team-line"><span>${g.away}</span><span>Away</span></div>
+                <div class="team-line"><span>${g.home}</span><span>Home</span></div>
+                <div class="time">${g.time}</div>
+              </div>
+              ${columns}
+            </div>
+            <div class="market-toggle">
+              <button onclick="toggleExtra(${g.id})">More markets +</button>
+            </div>
+            <div class="game-extra">
+              <div class="extra-card"><strong>Alternate lines</strong><div>Demo alternate spreads and totals would appear here.</div></div>
+              <div class="extra-card"><strong>Props</strong><div>Example player and team props can be added from a live data source later.</div></div>
+              <div class="extra-card"><strong>Market movement</strong><div>Opening line → current line history could be charted here.</div></div>
+            </div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function addPick(meta){
+      const game = games.find(g=>g.id===meta.gameId);
+      const entries = game[activeMarket.toLowerCase()];
+      const entry = entries.find(e=>e.book===meta.book);
+      const data = lineValue(entry, meta.side==="away" ? "a":"h");
+
+      const pick = {
+        id:Date.now()+Math.random(),
+        title:meta.team,
+        opponent:meta.opponent,
+        book:meta.book,
+        market:activeMarket,
+        line:data.line,
+        price:data.price
+      };
+
+      picks.unshift(pick);
+      renderBetslip();
+    }
+
+    function renderBetslip(){
+      const root = document.getElementById("betslipBody");
+      document.getElementById("pickCount").textContent =
+        `${picks.length} selection${picks.length===1?"":"s"}`;
+
+      if(!picks.length){
+        root.innerHTML = `<div class="empty">Select any price on the board to add it here. This demo does not place real wagers.</div>`;
+        return;
+      }
+
+      root.innerHTML = `
+        ${picks.map(p=>`
+          <div class="pick">
+            <div class="pick-top">
+              <div>
+                <div class="pick-title">${p.title}</div>
+                <div class="pick-sub">${p.market} ${p.line} • ${p.book}<br>vs ${p.opponent}</div>
+              </div>
+              <div style="display:flex;align-items:start">
+                <div class="pick-price">${formatOdds(p.price)}</div>
+                <button class="remove" onclick="removePick(${p.id})">×</button>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+        <div class="stake">
+          <label>Demo stake</label>
+          <input id="stakeInput" type="number" min="0" step="1" value="10" oninput="updateReturn()" />
+          <div class="return-row"><span>Potential return</span><strong id="potentialReturn">$0.00</strong></div>
+        </div>
+      `;
+      updateReturn();
+    }
+
+    function updateReturn(){
+      const input = document.getElementById("stakeInput");
+      const out = document.getElementById("potentialReturn");
+      if(!input || !out) return;
+
+      const stake = Math.max(0, Number(input.value)||0);
+      let decimal = 1;
+      picks.forEach(p=> decimal *= americanToDecimal(p.price));
+      out.textContent = `$${(stake * decimal).toFixed(2)}`;
+    }
+
+    function removePick(id){
+      picks = picks.filter(p=>p.id!==id);
+      renderBetslip();
+    }
+
+    function toggleExtra(id){
+      document.getElementById(`game-${id}`).classList.toggle("open");
+    }
+
+    function toggleAmerican(){
+      american = !american;
+      document.getElementById("oddsFormat").textContent = american ? "American" : "Decimal";
+      renderGames();
+      renderBetslip();
+    }
+
+    function scrollToBoard(){
+      document.getElementById("board").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+
+    document.querySelectorAll("#sportTabs button").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#sportTabs button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        activeSport = btn.dataset.sport;
+        renderGames();
+      });
+    });
+
+    document.querySelectorAll("#marketTabs button").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll("#marketTabs button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        activeMarket = btn.dataset.market;
+        renderGames();
+      });
+    });
+
+    document.getElementById("searchInput").addEventListener("input",renderGames);
+
+    renderBookFilters();
+    renderGames();
+    renderBetslip();
+  </script>
+</body>
+</html>
